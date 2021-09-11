@@ -1,0 +1,139 @@
+/* STDP effect on spike times
+    - network of single compartment spiking cells
+    - all-to-all connections between cells
+    - current injection causes cells to fire in sequence
+    	- connection weights kept low so do not initiate firing themselves
+    - based on Gerstner example (REF)
+    
+  Author: B. Graham, Computing Science & Maths, University of Stirling, U.K.
+  URL: www.cs.stir.ac.uk/~bpg/  Email: b.graham@cs.stir.ac.uk
+  
+  Last update: BPG 16-5-13
+*/
+
+load_file("nrngui.hoc")
+load_file("simpcell.hoc")
+
+Ncell=10	// number of cells
+
+Idel=50	// initial external input time
+Tdel=10	// delay (offset) between external inputs (msecs)
+Iint=Idel+(Tdel*Ncell)	// interval between inputs to one cell
+Iwgt=0.1	// external input weight (to fire cell)
+
+Cdel=1		// connection delay (msecs)
+Wgt=0.001	// base connection weight
+LTPfac=2	// maximum weight scaling (multiplier)
+LTDfac=10	// minimum weight scaling (divisor)
+Sdec=0.2	// synaptic decay time (msecs)
+Pfac=0.2	// STDP potentiation factor
+Dfac=0		// STDP depression factor
+
+objref cell[Ncell], syn[Ncell*Ncell], conn[Ncell*Ncell]
+objref input[Ncell], syni[Ncell], conni[Ncell]
+
+// Create cells
+for i=0, Ncell - 1 {
+    cell[i] = new SimpCell()
+}
+access cell[0].soma
+
+
+for i=0,Ncell-1 {
+  access cell[i].soma
+  
+// external inputs to fire cells
+  input[i] = new NetStim(0.5)
+  input[i].interval = Iint
+  input[i].start = Tdel*i + Idel
+  input[i].number = 100
+  input[i].noise = 0
+  
+  syni[i] = new ExpSyn(0.5)
+  syni[i].tau = Sdec
+  
+  conni[i] = new NetCon(input[i], syni[i], -20, 1, Iwgt)
+
+// synapses on cell  
+  for j=0,Ncell-1 {
+    syn[i*Ncell+j] = new STDPB(0.5)
+    syn[i*Ncell+j].tau = Sdec
+    syn[i*Ncell+j].p = Pfac
+    syn[i*Ncell+j].d = Dfac
+    syn[i*Ncell+j].wLTP = Wgt*LTPfac
+    syn[i*Ncell+j].wLTD = Wgt/LTDfac
+  }
+
+}
+
+// Set up all-to-all connections
+for i=0,Ncell-1 {
+  for j=0,Ncell-1 {
+    if (i != j) {	// no self connections
+      cell[j].soma conn[i*Ncell+j] = new NetCon(&v(0.5), syn[i*Ncell+j], -20, Cdel, Wgt)
+    }
+  }
+}
+
+
+proc set_params() {local i
+
+  Iint=Idel+(Tdel*Ncell)	// interval between inputs to one cell
+
+  for i=0,Ncell-1 {
+    input[i].interval = Iint
+    input[i].start = Tdel*i + Idel
+  }
+
+  for i=0,Ncell-1 {
+    for j=0,Ncell-1 {
+      if (i != j) {
+        conn[i*Ncell+j].weight = Wgt
+        syn[i*Ncell+j].tau = Sdec
+        syn[i*Ncell+j].p = Pfac
+        syn[i*Ncell+j].d = Dfac
+        syn[i*Ncell+j].wLTP = Wgt*LTPfac
+        syn[i*Ncell+j].wLTD = Wgt/LTDfac
+      }
+    }
+  }
+  
+}
+
+objref vwgts, gwgts
+vwgts = new Vector(Ncell*Ncell)
+gwgts = new Graph(0)
+
+proc plot_weights() {local i
+
+  for i=0,Ncell*Ncell-1 {
+    vwgts.x[i] = syn[i].wgt
+    print vwgts.x[i]
+  }
+  
+  gwgts.size(0, Ncell*Ncell-1, vwgts.min(), vwgts.max())
+  vwgts.plot(gwgts)
+  gwgts.flush()
+
+}
+
+objref s, sl
+s = new PlotShape()
+fast_flush_list.append(s)
+
+for i=0, Ncell*Ncell-1 {
+    s.hinton(&syn[i].wgt, i%10, int(i/10), 0.5)
+}
+s.size(-3,11,0,10)
+s.scale(0, Wgt*LTPfac)
+
+
+xpanel("Weights & Delays")
+xvalue("Input delay", "Tdel", 1, "set_params()")
+xvalue("Base weight", "Wgt", 1, "set_params()")
+xvalue("Potentiation", "Pfac", 1, "set_params()")
+xvalue("Depression", "Dfac", 1, "set_params()")
+xbutton("Update plot", "s.flush()")
+xpanel()
+
+xopen("STDPnetseq.ses")

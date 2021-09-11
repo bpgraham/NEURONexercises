@@ -1,0 +1,39 @@
+/* E-I oscillator
+    - 2 single compartment spiking cells
+    - excitatory connection from one cell to the other, with
+      reciprocal inhibitory connection back to first cell
+    - excitatory cell driven by current injection
+    
+  Author: B. Graham, Computing Science & Maths, University of Stirling, U.K.
+  URL: www.cs.stir.ac.uk/~bpg/  Email: b.graham@cs.stir.ac.uk
+  
+  Last update: BPG 16-5-13
+*/
+
+load_file("nrngui.hoc")
+load_file("simpcell.hoc")
+
+objref Ecell, Icell
+Ecell = new SimpCell()
+Icell = new SimpCell()
+
+access Ecell.soma
+
+// connect excite-inhib-excite
+Ecell.connect2target(Icell.synE, 2, 0.02)
+Icell.connect2target(Ecell.synI, 2, 0.005)
+
+objref IC
+Ecell.soma IC = new IClamp(0.5)
+IC.del = 0
+IC.dur = 1000
+IC.amp = 0.8
+
+xpanel("Weights & Delays")
+xvalue("E->I weight", "Ecell.nc.weight")
+xvalue("E->I delay", "Ecell.nc.delay")
+xvalue("I->E weight", "Icell.nc.weight")
+xvalue("I->E delay", "Icell.nc.delay")
+xpanel()
+
+xopen("EIosc.ses")
