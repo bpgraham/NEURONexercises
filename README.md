@@ -5,8 +5,8 @@ For details of the exercises and how to run them, please see the PDF file, NEURO
 
 The exercise code should run in all recent releases of the NEURON simulation software on any supported platform (latest test was September 2021 in NEURON 8 under Windows 10). Underlying code is written in hoc and NMODL, with the user interface using Interviews.
 
-You will need to clone this repository to the machine on which you have installed NEURON, and then appropriately compile .mod files in some of the Exercises subdirectories, as per the instructions in NEURON-exercises-basic.pdf.
+You will need to clone this repository (or download a ZIP file) to the machine on which you have installed NEURON, and then appropriately compile .mod files in some of the Exercises subdirectories, as per the instructions in NEURON-exercises-basic.pdf.
 
 Have fun!
-Bruce Graham
+Bruce Graham,
 September 2021
